@@ -146,4 +146,17 @@ private:
             max_capacity = -1; // No path found
         }
     }
+public:
+    MaxCapacitySolver(Network* net) : network(net), max_capacity(-1), 
+                                      current_iteration(0), source_node(-1), target_node(-1),
+                                      data_requested(0), data_remaining(0), data_transferred(0) {}
+    
+    void solve(int source, int target) {
+        path_result.clear();
+        if (source >= 0 && source < network->getNumNodes() && 
+            target >= 0 && target < network->getNumNodes() && 
+            source != target) {
+            dijkstraMaxMin(source, target);
+        }
+    }
 };
