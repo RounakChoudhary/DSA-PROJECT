@@ -79,5 +79,46 @@ public:
         }
         return false;
     }
+//
+int maxFlow(int source, int sink) {
+        int totalFlow = 0;
+        std::vector<int> parent(numNodes);
+        
+        while (bfs(source, sink, parent)) {
+            int pathFlow = INF;
+            
+            // Find minimum residual capacity along the path
+            for (int v = sink; v != source; v = parent[v]) {
+                int u = parent[v];
+                for (auto& e : adjList[u]) {
+                    if (e.to == v) {
+                        pathFlow = std::min(pathFlow, e.residual());
+                        break;
+                    }
+                }
+            }
+            
+            // Update flows
+            for (int v = sink; v != source; v = parent[v]) {
+                int u = parent[v];
+                for (auto& e : adjList[u]) {
+                    if (e.to == v) {
+                        e.flow += pathFlow;
+                        break;
+                    }
+                }
+                for (auto& e : adjList[v]) {
+                    if (e.to == u) {
+                        e.flow -= pathFlow;
+                        break;
+                    }
+                }
+            }
+            
+            totalFlow += pathFlow;
+        }
+        
+        return totalFlow;
+    }
 };
 #endif
