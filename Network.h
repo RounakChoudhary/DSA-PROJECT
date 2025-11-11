@@ -42,11 +42,42 @@ public:
             nodes[id].y = y;
         }
     }
- void addEdge(int from, int to, int capacity) {
+    void addEdge(int from, int to, int capacity) {
+            if (from >= 0 && from < numNodes && to >= 0 && to < numNodes) {
+                adjList[from].push_back(Edge(to, capacity));
+                adjList[to].push_back(Edge(from, 0)); // Reverse edge for flow algorithms
+            }
+        }
+    void addUndirectedEdge(int from, int to, int capacity) {
         if (from >= 0 && from < numNodes && to >= 0 && to < numNodes) {
             adjList[from].push_back(Edge(to, capacity));
-            adjList[to].push_back(Edge(from, 0)); // Reverse edge for flow algorithms
+            adjList[to].push_back(Edge(from, capacity));
         }
+    }
+    
+    bool bfs(int source, int sink, std::vector<int>& parent) {
+        std::vector<bool> visited(numNodes, false);
+        std::queue<int> q;
+        q.push(source);
+        visited[source] = true;
+        parent[source] = -1;
+        
+        while (!q.empty()) {
+            int u = q.front();
+            q.pop();
+            
+            for (size_t i = 0; i < adjList[u].size(); i++) 
+            {
+                Edge& e = adjList[u][i];
+                if (!visited[e.to] && e.residual() > 0) {
+                    visited[e.to] = true;
+                    parent[e.to] = u;
+                    if (e.to == sink) return true;
+                    q.push(e.to);
+                }
+            }
+        }
+        return false;
     }
 };
 #endif
