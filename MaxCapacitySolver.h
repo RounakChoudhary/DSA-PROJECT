@@ -159,4 +159,68 @@ public:
             dijkstraMaxMin(source, target);
         }
     }
+void initializeIterations(int source, int target, int data_amount = 0) {
+        source_node = source;
+        target_node = target;
+        current_iteration = 0;
+        iteration_history.clear();
+        path_result.clear();
+        max_capacity = -1;
+        data_requested = data_amount;
+        data_remaining = data_amount;
+        data_transferred = 0;
+    }
+    
+    // Run one iteration step
+    bool runStep() {
+        if (source_node < 0 || target_node < 0) {
+            return false;
+        }
+        
+        // If data transfer amount is set and all data is transferred, stop
+        if (data_requested > 0 && data_remaining <= 0) {
+            return false; // All requested data has been transferred
+        }
+        
+        std::vector<int> path;
+        int bottleneck;
+        
+        if (!findCheapestPath(source_node, target_node, path, bottleneck)) {
+            return false; // No path found
+        }
+        
+        // Check if bottleneck is positive (path exists but has no capacity)
+        if (bottleneck <= 0) {
+            return false; // Path exists but no capacity available
+        }
+        
+        // Calculate flow: limit to remaining data if data transfer amount is set
+        int flow = bottleneck;
+        if (data_requested > 0) {
+            flow = std::min(bottleneck, data_remaining);
+        }
+        
+        // Update capacities along the path (reduce by flow)
+        for (size_t i = 0; i < path.size() - 1; i++) {
+            int u = path[i];
+            int v = path[i + 1];
+            
+            // Get modifiable edges
+            auto& edges = network->getEdgesModifiable(u);
+            for (auto& e : edges) {
+                if (e.to == v) {
+                    e.capacity -= flow;
+                    if (e.capacity < 0) e.capacity = 0;
+                    break;
+                }
+            }
+        }
+        
+        current_iteration++;
+        
+        // Update data tracking
+        if (data_requested > 0) {
+            data_transferred += flow;
+            data_remaining -= flow;
+        }
 };
