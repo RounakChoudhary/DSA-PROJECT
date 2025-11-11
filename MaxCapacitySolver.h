@@ -93,4 +93,57 @@ private:
         std::reverse(path.begin(), path.end());
         return true;
     }
+ void dijkstraMaxMin(int source, int target) {
+        int n = network->getNumNodes();
+        std::vector<int> max_cap(n, -1); // Maximum minimum capacity to reach each node
+        std::vector<int> parent(n, -1);
+        std::vector<bool> visited(n, false);
+        
+        // Priority queue: {max_min_capacity, node}
+        // We use negative capacity to make it a max-heap (since priority_queue is min-heap by default)
+        std::priority_queue<std::pair<int, int>> pq;
+        
+        max_cap[source] = std::numeric_limits<int>::max();
+        pq.push({max_cap[source], source});
+        
+        while (!pq.empty()) {
+            int u = pq.top().second;
+            pq.pop();
+            
+            if (visited[u]) continue;
+            visited[u] = true;
+            
+            if (u == target) break;
+            
+            const auto& edges = network->getEdges(u);
+            for (const auto& e : edges) {
+                // Only consider edges with positive capacity
+                if (e.capacity <= 0) continue;
+                
+                int v = e.to;
+                // The capacity to reach v via u is min(max_cap[u], e.capacity)
+                int new_cap = std::min(max_cap[u], e.capacity);
+                
+                if (new_cap > max_cap[v]) {
+                    max_cap[v] = new_cap;
+                    parent[v] = u;
+                    pq.push({max_cap[v], v});
+                }
+            }
+        }
+        
+        // Reconstruct path
+        path_result.clear();
+        if (max_cap[target] >= 0) {
+            int current = target;
+            while (current != -1) {
+                path_result.push_back(current);
+                current = parent[current];
+            }
+            std::reverse(path_result.begin(), path_result.end());
+            max_capacity = max_cap[target];
+        } else {
+            max_capacity = -1; // No path found
+        }
+    }
 };
