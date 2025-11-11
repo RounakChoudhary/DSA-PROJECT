@@ -223,4 +223,63 @@ void initializeIterations(int source, int target, int data_amount = 0) {
             data_transferred += flow;
             data_remaining -= flow;
         }
+
+        // Store iteration data
+        IterationData iterData;
+        iterData.iteration = current_iteration;
+        iterData.path = path;
+        iterData.flow = flow;
+        iterData.bottleneck = bottleneck;
+        iteration_history.push_back(iterData);
+        
+        // Update current path result
+        path_result = path;
+        max_capacity = bottleneck;
+        
+        return true;
+
+        bool canContinue() {
+        if (source_node < 0 || target_node < 0) {
+            return false;
+        }
+        
+        // If data transfer amount is set and all data is transferred, cannot continue
+        if (data_requested > 0 && data_remaining <= 0) {
+            return false; // All requested data has been transferred
+        }
+        
+        std::vector<int> testPath;
+        int testBottleneck;
+        if (!findCheapestPath(source_node, target_node, testPath, testBottleneck)) {
+            return false; // No path found
+        }
+        // Also check if bottleneck is positive (path exists but has no capacity)
+        return testBottleneck > 0;
+    }
+    
+    int getCurrentIteration() const {
+        return current_iteration;
+    }
+    
+    const std::vector<IterationData>& getIterationHistory() const {
+        return iteration_history;
+    }
+    
+    const std::vector<int>& getPath() const {
+        return path_result;
+    }
+    
+    int getMaxCapacity() const {
+        return max_capacity;
+    }
+    
+    bool hasPath() const {
+        return !path_result.empty() && max_capacity >= 0;
+    }
+    
+    int getDataRequested() const { return data_requested; }
+    int getDataRemaining() const { return data_remaining; }
+    int getDataTransferred() const { return data_transferred; }
 };
+
+#endif
