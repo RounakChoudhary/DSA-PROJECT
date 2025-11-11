@@ -1,6 +1,11 @@
 #ifndef NETWORK_H
 #define NETWORK_H
+#include <vector>
+#include <queue>
+#include <limits>
+#include <algorithm>
 
+const int INF = std::numeric_limits<int>::max();
 struct Edge {
     int to;
     int capacity;
@@ -35,6 +40,12 @@ public:
         if (id >= 0 && id < numNodes) {
             nodes[id].x = x;
             nodes[id].y = y;
+        }
+    }
+ void addEdge(int from, int to, int capacity) {
+        if (from >= 0 && from < numNodes && to >= 0 && to < numNodes) {
+            adjList[from].push_back(Edge(to, capacity));
+            adjList[to].push_back(Edge(from, 0)); // Reverse edge for flow algorithms
         }
     }
 };
