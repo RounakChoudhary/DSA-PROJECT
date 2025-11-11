@@ -120,5 +120,26 @@ int maxFlow(int source, int sink) {
         
         return totalFlow;
     }
+ void updateNodeLoad() {
+        for (int i = 0; i < numNodes; i++) {
+            nodes[i].load = 0;
+            for (const auto& e : adjList[i]) {
+                nodes[i].load += e.flow;
+            }
+        }
+    }
+    
+    void resetFlows() {
+        for (auto& edges : adjList) {
+            for (auto& e : edges) {
+                e.flow = 0;
+            }
+        }
+    }
+    
+    const Node& getNode(int id) const { return nodes[id]; }
+    const std::vector<Edge>& getEdges(int id) const { return adjList[id]; }
+    std::vector<Edge>& getEdgesModifiable(int id) { return adjList[id]; }
+    int getNumNodes() const { return numNodes; }
 };
 #endif
