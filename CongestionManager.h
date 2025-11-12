@@ -89,5 +89,20 @@ public:
             congestionLevel = (float)totalFlow / totalCapacity;
         }
     }
+    void optimizeRouting() {
+        // Simple optimization: reroute failed requests
+        for (auto& req : requests) {
+            if (!req.routed) {
+                network->resetFlows();
+                int flow = network->maxFlow(req.source, req.destination);
+                if (flow >= req.demand) {
+                    req.routed = true;
+                }
+            }
+        }
+        
+        network->updateNodeLoad();
+        calculateCongestion();
+    }
 }
 #endif
