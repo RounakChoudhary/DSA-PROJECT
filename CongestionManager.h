@@ -15,4 +15,33 @@ struct TrafficRequest {
     TrafficRequest(int s, int d, int dem) 
         : source(s), destination(d), demand(dem), routed(false) {}
 };
+class CongestionManager {
+private:
+    Network* network;
+    std::vector<TrafficRequest> requests;
+    float congestionLevel;
+    int totalCapacity;
+    int totalFlow;
+    
+    bool findPath(int source, int sink, std::vector<int>& path, std::vector<bool>& visited) {
+        if (source == sink) {
+            path.push_back(sink);
+            return true;
+        }
+        
+        visited[source] = true;
+        const auto& edges = network->getEdges(source);
+        
+        for (const auto& e : edges) {
+            if (!visited[e.to] && e.residual() > 0) {
+                if (findPath(e.to, sink, path, visited)) {
+                    path.insert(path.begin(), source);
+                    return true;
+                }
+            }
+        }
+        
+        return false;
+    }
+}
 #endif
