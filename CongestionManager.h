@@ -104,5 +104,22 @@ public:
         network->updateNodeLoad();
         calculateCongestion();
     }
+ void clearRequests() {
+        requests.clear();
+        network->resetFlows();
+        congestionLevel = 0.0f;
+    }
+    
+    float getCongestionLevel() const { return congestionLevel; }
+    int getTotalFlow() const { return totalFlow; }
+    int getTotalCapacity() const { return totalCapacity; }
+    const std::vector<TrafficRequest>& getRequests() const { return requests; }
+    int getSuccessfulRoutes() const {
+        int count = 0;
+        for (const auto& req : requests) {
+            if (req.routed) count++;
+        }
+        return count;
+    }
 }
 #endif
