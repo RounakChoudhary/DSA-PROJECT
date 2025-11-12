@@ -43,5 +43,35 @@ private:
         
         return false;
     }
+public:
+    CongestionManager(Network* net) 
+        : network(net), congestionLevel(0.0f), totalCapacity(0), totalFlow(0) {}
+    
+    void addRequest(int source, int dest, int demand) {
+        requests.emplace_back(source, dest, demand);
+    }
+    
+    void routeTraffic() {
+        network->resetFlows();
+        
+        for (auto& req : requests) {
+            // Try to route each request
+            int flow = network->maxFlow(req.source, req.destination);
+            if (flow >= req.demand) {
+                req.routed = true;
+                
+                // Find the path taken
+                std::vector<int> path;
+                std::vector<bool> visited(network->getNumNodes(), false);
+                findPath(req.source, req.destination, path, visited);
+                req.path = path;
+            } else {
+                req.routed = false;
+            }
+        }
+        
+        network->updateNodeLoad();
+        calculateCongestion();
+    }
 }
 #endif
