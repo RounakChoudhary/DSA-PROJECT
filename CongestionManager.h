@@ -73,5 +73,21 @@ public:
         network->updateNodeLoad();
         calculateCongestion();
     }
+ void calculateCongestion() {
+        totalFlow = 0;
+        totalCapacity = 0;
+        
+        for (int i = 0; i < network->getNumNodes(); i++) {
+            const auto& edges = network->getEdges(i);
+            for (const auto& e : edges) {
+                totalCapacity += e.capacity;
+                totalFlow += e.flow;
+            }
+        }
+        
+        if (totalCapacity > 0) {
+            congestionLevel = (float)totalFlow / totalCapacity;
+        }
+    }
 }
 #endif
