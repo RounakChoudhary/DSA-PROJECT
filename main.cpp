@@ -25,6 +25,596 @@ enum AppState {
     SIMULATION_STEP,
     RESULT_FINAL
 };
+
+class CheapestRoutingOptimizer {
+private:
+    // String-to-ID mapping
+    std::map<std::string, int> cityToId;
+    std::vector<std::string> idToCity;
+    
+    // Graph structure
+    std::vector<std::vector<Edge>> graph;
+    int numNodes;
+    
+    // Simulation parameters
+    std::string sourceCity;
+    std::string targetCity;
+    int sourceId;
+    int targetId;
+    int totalData;
+    int dataTransferred;
+    int dataRemaining;
+    int currentIteration;
+    
+    // Current path for visualization
+    std::vector<int> currentPath;
+    bool pathFound;
+    
+    // Iteration history
+    std::vector<IterationData> iterationHistory;
+    
+    // Helper function to split comma-separated string
+    std::vector<std::string> splitString(const std::string& str, char delimiter) {
+        std::vector<std::string> tokens;
+        std::stringstream ss(str);
+        std::string token;
+        while (std::getline(ss, token, delimiter)) {
+            // Trim whitespace
+            token.erase(0, token.find_first_not_of(" \t"));
+            token.erase(token.find_last_not_of(" \t") + 1);
+            if (!token.empty()) {
+                tokens.push_back(token);
+            }
+        }
+        return tokens;
+    }
+    
+    // Dijkstra's algorithm with cost function: 1.0 / (residual_capacity + 0.1)
+    bool findCheapestPath(std::vector<int>& path, int& bottleneck, double& pathCost) {
+        std::vector<double> dist(numNodes, std::numeric_limits<double>::max());
+        std::vector<int> parent(numNodes, -1);
+        std::vector<bool> visited(numNodes, false);
+        
+        std::priority_queue<std::pair<double, int>, 
+                           std::vector<std::pair<double, int>>,
+                           std::greater<std::pair<double, int>>> pq;
+        
+        dist[sourceId] = 0.0;
+        pq.push({0.0, sourceId});
+        
+        while (!pq.empty()) {
+            int u = pq.top().second;
+            pq.pop();
+            
+            if (visited[u]) continue;
+            visited[u] = true;
+            
+            if (u == targetId) break;
+            
+            for (size_t i = 0; i < graph[u].size(); i++) {
+                const Edge& e = graph[u][i];
+                if (e.residual_capacity > 0) {
+                    double cost = 1.0 / (e.residual_capacity + 0.1);
+                    if (dist[u] + cost < dist[e.to]) {
+                        dist[e.to] = dist[u] + cost;
+                        parent[e.to] = u;
+                        pq.push({dist[e.to], e.to});
+                    }
+                }
+            }
+        }
+        
+        if (parent[targetId] == -1) {
+            return false; // No path found
+        }
+        
+        // Reconstruct path and calculate total cost
+        path.clear();
+        int current = targetId;
+        bottleneck = std::numeric_limits<int>::max();
+        pathCost = dist[targetId]; // Total cost is the distance to target
+        
+        while (current != -1) {
+            path.push_back(current);
+            if (parent[current] != -1) {
+                // Find edge capacity
+                for (const Edge& e : graph[parent[current]]) {
+                    if (e.to == current) {
+                        bottleneck = std::min(bottleneck, e.residual_capacity);
+                        break;
+                    }
+                }
+            }
+            current = parent[current];
+        }
+        
+        std::reverse(path.begin(), path.end());
+        return true;
+    }
+    
+public:
+    CheapestRoutingOptimizer() : numNodes(0), sourceId(-1), targetId(-1), 
+                                  totalData(0), dataTransferred(0), dataRemaining(0),
+                                  currentIteration(0), pathFound(false) {
+        iterationHistory.clear();
+    }
+    
+    // Initialize cities from comma-separated string
+    bool initializeCities(const std::string& cityList) {
+        std::vector<std::string> cities = splitString(cityList, ',');
+        if (cities.size() < 2) {
+            return false;
+        }
+        
+        cityToId.clear();
+        idToCity.clear();
+        
+        for (size_t i = 0; i < cities.size(); i++) {
+            cityToId[cities[i]] = i;
+            idToCity.push_back(cities[i]);
+        }
+        
+        numNodes = cities.size();
+        graph.clear();
+        graph.resize(numNodes);
+        
+        return true;
+    }
+    
+    // Add edge using city names
+    bool addEdge(const std::string& fromCity, const std::string& toCity, int capacity) {
+        if (cityToId.find(fromCity) == cityToId.end() || 
+            cityToId.find(toCity) == cityToId.end()) {
+            return false;
+        }
+        
+        int from = cityToId[fromCity];
+        int to = cityToId[toCity];
+        
+        if (from == to || capacity <= 0) {
+            return false;
+        }
+        
+        // Add forward edge
+        int forwardIndex = graph[from].size();
+        graph[from].push_back(Edge(to, capacity));
+        
+        // Add reverse edge (with 0 initial capacity)
+        int reverseIndex = graph[to].size();
+        graph[to].push_back(Edge(from, 0));
+        
+        // Link reverse edges
+        graph[from][forwardIndex].reverse_edge_index = reverseIndex;
+        graph[to][reverseIndex].reverse_edge_index = forwardIndex;
+        
+        return true;
+    }
+    
+    // Set source, target, and total data
+    bool setSourceTargetData(const std::string& src, const std::string& tgt, int data) {
+        if (cityToId.find(src) == cityToId.end() || 
+            cityToId.find(tgt) == cityToId.end()) {
+            return false;
+        }
+        
+        sourceCity = src;
+        targetCity = tgt;
+        sourceId = cityToId[src];
+        targetId = cityToId[tgt];
+        totalData = data;
+        dataRemaining = data;
+        dataTransferred = 0;
+        currentIteration = 0;
+        
+        // Clear previous history when starting new simulation
+        clearHistory();
+        
+        return true;
+    }
+    
+    // Run one iteration of the flow algorithm
+    bool runStep() {
+        if (dataRemaining <= 0) {
+            pathFound = false;
+            currentPath.clear();
+            return false; // All data transferred
+        }
+        
+        std::vector<int> path;
+        int bottleneck;
+        double pathCost;
+        
+        if (!findCheapestPath(path, bottleneck, pathCost)) {
+            pathFound = false;
+            currentPath.clear();
+            return false; // No path found
+        }
+        
+        pathFound = true;
+        currentPath = path;
+        
+        // Calculate flow: min(bottleneck, dataRemaining)
+        int flow = std::min(bottleneck, dataRemaining);
+        
+        // Update residual capacities along the path
+        for (size_t i = 0; i < path.size() - 1; i++) {
+            int u = path[i];
+            int v = path[i + 1];
+            
+            // Find and update forward edge
+            for (Edge& e : graph[u]) {
+                if (e.to == v) {
+                    e.residual_capacity -= flow;
+                    // Update reverse edge
+                    if (e.reverse_edge_index >= 0) {
+                        graph[v][e.reverse_edge_index].residual_capacity += flow;
+                    }
+                    break;
+                }
+            }
+        }
+        
+        dataTransferred += flow;
+        dataRemaining -= flow;
+        currentIteration++;
+        
+        // Store iteration data
+        IterationData iterData;
+        iterData.iteration = currentIteration;
+        iterData.path = path;
+        iterData.flow = flow;
+        iterData.dataTransferred = dataTransferred;
+        iterData.dataRemaining = dataRemaining;
+        iterData.cost = pathCost;
+        iterationHistory.push_back(iterData);
+        
+        return true;
+    }
+    
+    // Check if a path exists without running a step
+    bool checkPathExists() {
+        if (dataRemaining <= 0) return false;
+        
+        std::vector<int> testPath;
+        int testBottleneck;
+        double testCost;
+        return findCheapestPath(testPath, testBottleneck, testCost);
+    }
+    
+    // Getters
+    const std::vector<int>& getCurrentPath() const { return currentPath; }
+    bool hasPath() const { return pathFound; }
+    int getDataTransferred() const { return dataTransferred; }
+    int getDataRemaining() const { return dataRemaining; }
+    int getTotalData() const { return totalData; }
+    int getCurrentIteration() const { return currentIteration; }
+    int getNumNodes() const { return numNodes; }
+    const std::vector<std::string>& getCityNames() const { return idToCity; }
+    const std::vector<std::vector<Edge>>& getGraph() const { return graph; }
+    std::string getCityName(int id) const {
+        if (id >= 0 && id < (int)idToCity.size()) {
+            return idToCity[id];
+        }
+        return "";
+    }
+    
+    // Check if city exists
+    bool cityExists(const std::string& city) const {
+        return cityToId.find(city) != cityToId.end();
+    }
+    
+    // Get all city names
+    std::vector<std::string> getAllCities() const {
+        return idToCity;
+    }
+    
+    // Get iteration history
+    const std::vector<IterationData>& getIterationHistory() const {
+        return iterationHistory;
+    }
+    
+    // Clear iteration history (when starting new simulation)
+    void clearHistory() {
+        iterationHistory.clear();
+        currentIteration = 0;
+        dataTransferred = 0;
+    }
+};
+class CheapestRoutingOptimizer {
+private:
+    // String-to-ID mapping
+    std::map<std::string, int> cityToId;
+    std::vector<std::string> idToCity;
+    
+    // Graph structure
+    std::vector<std::vector<Edge>> graph;
+    int numNodes;
+    
+    // Simulation parameters
+    std::string sourceCity;
+    std::string targetCity;
+    int sourceId;
+    int targetId;
+    int totalData;
+    int dataTransferred;
+    int dataRemaining;
+    int currentIteration;
+    
+    // Current path for visualization
+    std::vector<int> currentPath;
+    bool pathFound;
+    
+    // Iteration history
+    std::vector<IterationData> iterationHistory;
+    
+    // Helper function to split comma-separated string
+    std::vector<std::string> splitString(const std::string& str, char delimiter) {
+        std::vector<std::string> tokens;
+        std::stringstream ss(str);
+        std::string token;
+        while (std::getline(ss, token, delimiter)) {
+            // Trim whitespace
+            token.erase(0, token.find_first_not_of(" \t"));
+            token.erase(token.find_last_not_of(" \t") + 1);
+            if (!token.empty()) {
+                tokens.push_back(token);
+            }
+        }
+        return tokens;
+    }
+    
+    // Dijkstra's algorithm with cost function: 1.0 / (residual_capacity + 0.1)
+    bool findCheapestPath(std::vector<int>& path, int& bottleneck, double& pathCost) {
+        std::vector<double> dist(numNodes, std::numeric_limits<double>::max());
+        std::vector<int> parent(numNodes, -1);
+        std::vector<bool> visited(numNodes, false);
+        
+        std::priority_queue<std::pair<double, int>, 
+                           std::vector<std::pair<double, int>>,
+                           std::greater<std::pair<double, int>>> pq;
+        
+        dist[sourceId] = 0.0;
+        pq.push({0.0, sourceId});
+        
+        while (!pq.empty()) {
+            int u = pq.top().second;
+            pq.pop();
+            
+            if (visited[u]) continue;
+            visited[u] = true;
+            
+            if (u == targetId) break;
+            
+            for (size_t i = 0; i < graph[u].size(); i++) {
+                const Edge& e = graph[u][i];
+                if (e.residual_capacity > 0) {
+                    double cost = 1.0 / (e.residual_capacity + 0.1);
+                    if (dist[u] + cost < dist[e.to]) {
+                        dist[e.to] = dist[u] + cost;
+                        parent[e.to] = u;
+                        pq.push({dist[e.to], e.to});
+                    }
+                }
+            }
+        }
+        
+        if (parent[targetId] == -1) {
+            return false; // No path found
+        }
+        
+        // Reconstruct path and calculate total cost
+        path.clear();
+        int current = targetId;
+        bottleneck = std::numeric_limits<int>::max();
+        pathCost = dist[targetId]; // Total cost is the distance to target
+        
+        while (current != -1) {
+            path.push_back(current);
+            if (parent[current] != -1) {
+                // Find edge capacity
+                for (const Edge& e : graph[parent[current]]) {
+                    if (e.to == current) {
+                        bottleneck = std::min(bottleneck, e.residual_capacity);
+                        break;
+                    }
+                }
+            }
+            current = parent[current];
+        }
+        
+        std::reverse(path.begin(), path.end());
+        return true;
+    }
+    
+public:
+    CheapestRoutingOptimizer() : numNodes(0), sourceId(-1), targetId(-1), 
+                                  totalData(0), dataTransferred(0), dataRemaining(0),
+                                  currentIteration(0), pathFound(false) {
+        iterationHistory.clear();
+    }
+    
+    // Initialize cities from comma-separated string
+    bool initializeCities(const std::string& cityList) {
+        std::vector<std::string> cities = splitString(cityList, ',');
+        if (cities.size() < 2) {
+            return false;
+        }
+        
+        cityToId.clear();
+        idToCity.clear();
+        
+        for (size_t i = 0; i < cities.size(); i++) {
+            cityToId[cities[i]] = i;
+            idToCity.push_back(cities[i]);
+        }
+        
+        numNodes = cities.size();
+        graph.clear();
+        graph.resize(numNodes);
+        
+        return true;
+    }
+    
+    // Add edge using city names
+    bool addEdge(const std::string& fromCity, const std::string& toCity, int capacity) {
+        if (cityToId.find(fromCity) == cityToId.end() || 
+            cityToId.find(toCity) == cityToId.end()) {
+            return false;
+        }
+        
+        int from = cityToId[fromCity];
+        int to = cityToId[toCity];
+        
+        if (from == to || capacity <= 0) {
+            return false;
+        }
+        
+        // Add forward edge
+        int forwardIndex = graph[from].size();
+        graph[from].push_back(Edge(to, capacity));
+        
+        // Add reverse edge (with 0 initial capacity)
+        int reverseIndex = graph[to].size();
+        graph[to].push_back(Edge(from, 0));
+        
+        // Link reverse edges
+        graph[from][forwardIndex].reverse_edge_index = reverseIndex;
+        graph[to][reverseIndex].reverse_edge_index = forwardIndex;
+        
+        return true;
+    }
+    
+    // Set source, target, and total data
+    bool setSourceTargetData(const std::string& src, const std::string& tgt, int data) {
+        if (cityToId.find(src) == cityToId.end() || 
+            cityToId.find(tgt) == cityToId.end()) {
+            return false;
+        }
+        
+        sourceCity = src;
+        targetCity = tgt;
+        sourceId = cityToId[src];
+        targetId = cityToId[tgt];
+        totalData = data;
+        dataRemaining = data;
+        dataTransferred = 0;
+        currentIteration = 0;
+        
+        // Clear previous history when starting new simulation
+        clearHistory();
+        
+        return true;
+    }
+    
+    // Run one iteration of the flow algorithm
+    bool runStep() {
+        if (dataRemaining <= 0) {
+            pathFound = false;
+            currentPath.clear();
+            return false; // All data transferred
+        }
+        
+        std::vector<int> path;
+        int bottleneck;
+        double pathCost;
+        
+        if (!findCheapestPath(path, bottleneck, pathCost)) {
+            pathFound = false;
+            currentPath.clear();
+            return false; // No path found
+        }
+        
+        pathFound = true;
+        currentPath = path;
+        
+        // Calculate flow: min(bottleneck, dataRemaining)
+        int flow = std::min(bottleneck, dataRemaining);
+        
+        // Update residual capacities along the path
+        for (size_t i = 0; i < path.size() - 1; i++) {
+            int u = path[i];
+            int v = path[i + 1];
+            
+            // Find and update forward edge
+            for (Edge& e : graph[u]) {
+                if (e.to == v) {
+                    e.residual_capacity -= flow;
+                    // Update reverse edge
+                    if (e.reverse_edge_index >= 0) {
+                        graph[v][e.reverse_edge_index].residual_capacity += flow;
+                    }
+                    break;
+                }
+            }
+        }
+        
+        dataTransferred += flow;
+        dataRemaining -= flow;
+        currentIteration++;
+        
+        // Store iteration data
+        IterationData iterData;
+        iterData.iteration = currentIteration;
+        iterData.path = path;
+        iterData.flow = flow;
+        iterData.dataTransferred = dataTransferred;
+        iterData.dataRemaining = dataRemaining;
+        iterData.cost = pathCost;
+        iterationHistory.push_back(iterData);
+        
+        return true;
+    }
+    
+    // Check if a path exists without running a step
+    bool checkPathExists() {
+        if (dataRemaining <= 0) return false;
+        
+        std::vector<int> testPath;
+        int testBottleneck;
+        double testCost;
+        return findCheapestPath(testPath, testBottleneck, testCost);
+    }
+    
+    // Getters
+    const std::vector<int>& getCurrentPath() const { return currentPath; }
+    bool hasPath() const { return pathFound; }
+    int getDataTransferred() const { return dataTransferred; }
+    int getDataRemaining() const { return dataRemaining; }
+    int getTotalData() const { return totalData; }
+    int getCurrentIteration() const { return currentIteration; }
+    int getNumNodes() const { return numNodes; }
+    const std::vector<std::string>& getCityNames() const { return idToCity; }
+    const std::vector<std::vector<Edge>>& getGraph() const { return graph; }
+    std::string getCityName(int id) const {
+        if (id >= 0 && id < (int)idToCity.size()) {
+            return idToCity[id];
+        }
+        return "";
+    }
+    
+    // Check if city exists
+    bool cityExists(const std::string& city) const {
+        return cityToId.find(city) != cityToId.end();
+    }
+    
+    // Get all city names
+    std::vector<std::string> getAllCities() const {
+        return idToCity;
+    }
+    
+    // Get iteration history
+    const std::vector<IterationData>& getIterationHistory() const {
+        return iterationHistory;
+    }
+    
+    // Clear iteration history (when starting new simulation)
+    void clearHistory() {
+        iterationHistory.clear();
+        currentIteration = 0;
+        dataTransferred = 0;
+    }
+};
+// UI class 
 class UI {
 private:
     AppState currentState;
@@ -856,3 +1446,8 @@ public:
         CloseWindow();
     }
 };
+int main() {
+    UI ui;
+    ui.run();
+    return 0;
+}
