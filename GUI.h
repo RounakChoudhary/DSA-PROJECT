@@ -566,16 +566,20 @@ private:
     }
     // Setup demo network
     void setupDemoNetwork(Network& net) {
-        // 4-city demo network
+        // 5-city demo network
         net.setNodePosition(0, 200, 150);
         net.setNodePosition(1, 400, 150);
         net.setNodePosition(2, 600, 250);
         net.setNodePosition(3, 200, 350);
+        net.setNodePosition(4, 400, 400);
         
         net.addUndirectedEdge(0, 1, 20);
         net.addUndirectedEdge(1, 2, 15);
         net.addUndirectedEdge(0, 3, 25);
-    }
+        net.addUndirectedEdge(1, 4, 18);
+        net.addUndirectedEdge(2, 4, 12);
+        net.addUndirectedEdge(3, 4, 20);
+    }
     
 public:
     GUI(Network* net = nullptr, MaxCapacitySolver* sol = nullptr) 
