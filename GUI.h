@@ -564,6 +564,18 @@ private:
             currentState = VISUALIZE_ITERATION;
         }
     }
+    // Setup demo network
+    void setupDemoNetwork(Network& net) {
+        // 4-city demo network
+        net.setNodePosition(0, 200, 150);
+        net.setNodePosition(1, 400, 150);
+        net.setNodePosition(2, 600, 250);
+        net.setNodePosition(3, 200, 350);
+        
+        net.addUndirectedEdge(0, 1, 20);
+        net.addUndirectedEdge(1, 2, 15);
+        net.addUndirectedEdge(0, 3, 25);
+    }
     
 public:
     GUI(Network* net = nullptr, MaxCapacitySolver* sol = nullptr) 
