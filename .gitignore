@@ -1,0 +1,13 @@
+# Compiled Binaries (Executable files)
+*.o
+*.out
+*.exe
+*.dll
+
+# Build Directories
+build/
+bin/
+tmp/
+
+# Ignore log files
+*.log
