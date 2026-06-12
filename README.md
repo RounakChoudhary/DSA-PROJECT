@@ -2,18 +2,25 @@
 
 ## 🌟 Project Overview
 
-This project is a Data Structures and Algorithms (DSA) implementation designed to model and optimize a computer network. The primary goal is to *minimize data congestion* and determine the *cheapest (most optimal) path* for transporting data between any two branches (nodes) within the network.
+This repository contains a C++ application for modeling and optimizing a network using graph algorithms. The project minimizes data congestion and finds the most efficient path for transferring data between nodes while visualizing the network through a Raylib-based GUI.
 
-It achieves this by leveraging the power of *graph data structures* and advanced graph algorithms.
+Key capabilities:
+
+* Create and edit directed network graphs.
+* Run max-flow / min-cut optimization.
+* Compute the cheapest path between source and target nodes.
+* Visualize the network and simulation steps.
+* Demo modes, including a deterministic 50-city example.
+
+---
 
 ## ✨ Features
 
-The application provides a robust set of features for network modeling and optimization:
-
-* *Max Flow/Min Cut Implementation:* Utilizes the *Edmonds-Karp algorithm* and an *Augmented Path Search Heuristic* to accurately calculate maximum data flow and identify network bottlenecks.
-* *Cheapest Path Finding:* Implements pathfinding algorithms (like Dijkstra's) to find the path with the lowest overall "cost" between two points.
-* *Interactive Graphical User Interface (GUI):* A visual interface built with *Raylib* displays network topology, congestion calculations, and includes iteration history controls.
-* *Core Application Logic:* Robust data handling and structure initialization (Network.h, CongestionManager.h) providing a stable foundation for complex algorithms.
+* Max-flow and congestion-aware routing.
+* Cheapest path selection over the network.
+* Raylib GUI for input, visualization, and simulation control.
+* Demo support with quick-load network examples.
+* Iteration history and step-by-step replay.
 
 ---
 
@@ -21,11 +28,9 @@ The application provides a robust set of features for network modeling and optim
 
 | Technology | Purpose |
 | :--- | :--- |
-| *C++ / C* | Core implementation language for algorithms and data structures. |
-| *Raylib* | Used for creating the graphical user interface (GUI) and visualization. |
-| *Graph Data Structure* | Core data model for representing the network topology. |
-| *Edmonds-Karp Algorithm* | Fundamental algorithm for solving the Max-Flow problem. |
-| *Augmented Path Heuristic* | Used for efficient path finding within the Max-Flow computation. |
+| C++ | Core implementation language. |
+| Raylib | GUI rendering and input handling. |
+| Graph algorithms | Network modeling and optimization. |
 
 ---
 
@@ -33,46 +38,71 @@ The application provides a robust set of features for network modeling and optim
 
 ### Prerequisites
 
-You will need a C++ compiler (like g++ or Clang) and the Raylib library installed on your system to compile and run this project.
+* A C++ compiler with C++11 support or newer.
+* Raylib installed and configured for your environment.
+* Git, if cloning the repository.
 
-* A C++ compiler supporting C++11 or later.
-* The *Raylib* library (ensure it is configured correctly for your environment).
+### Clone the repository
 
-### Installation
+```bash
+git clone https://github.com/RounakChoudhary/DSA-PROJECT.git
+cd DSA-PROJECT/DSA-project
+```
 
-1.  *Clone the repository:*
-    bash
-    git clone [https://github.com/RounakChoudhary/DSA-PROJECT.git](https://github.com/RounakChoudhary/DSA-PROJECT.git)
-    cd DSA-PROJECT
-    
+### Build on Windows
 
-2.  *Compilation:*
-    Assuming you have raylib correctly linked, compile the project using your compiler. A common compilation command for Raylib projects is:
-    bash
-    # Example using g++ (adjust flags based on your Raylib setup)
-    g++ main.cpp -o NetworkSolver -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
-    
+From the `DSA-project` folder, use:
 
-3.  *Run the application:*
-    bash
-    ./NetworkSolver
-    
+```powershell
+g++ main.cpp -o DSA-project.exe -lraylib -lopengl32 -lgdi32 -lwinmm -luser32 -lkernel32
+```
+
+If your Raylib setup differs, adjust the library flags accordingly.
+
+### Run the application
+
+```powershell
+.\\DSA-project.exe
+```
+
+### Quick start
+
+1. Enter city names separated by commas, or use a demo button.
+2. Click `Input Edges` and add network connections.
+3. Select source and target cities, enter a data amount, and begin the simulation.
+4. Observe the graph visualization and optimization output.
+
+---
+
+## 🧪 Demo modes
+
+* `Load 5 cities demo` — quick small network example.
+* `Load 50 cities demo` — deterministic 50-city network with preconfigured edges.
+
+---
+
+## 📁 Project structure
+
+* `DSA-project/main.cpp` — app entry point, GUI, and main logic.
+* `DSA-project/Network.h` — network graph model definitions.
+* `DSA-project/CongestionManager.h` — congestion and flow algorithms.
+* `DSA-project/GUI.h` — UI state, input handling, and drawing.
+* `DSA-project/MaxCapacitySolver.h` — path finding and capacity optimization.
+* `DSA-project/raylib.h` — Raylib header wrapper.
 
 ---
 
 ## 👥 Contributors
 
-This project was a collaborative effort. The specific contributions for each team member are detailed below:
-
-| Name | Focus Area & Key Deliverables | GitHub |
+| Name | Contribution | GitHub |
 | :--- | :--- | :--- |
-| *Akshaya* | *System Definition & UI Shell:* Defined and finalized the core application logic within the CongestionManager.h and established the foundational graphical framework for the application. | [@Akkiiitj](https://github.com/Akkiiitj) |
-| *Rounak* | *Max-Flow & Visualization:* Implemented the full *Edmonds-Karp algorithm* and developed the critical logic for congestion calculation and network visualization component in the GUI. | [@RounakChoudhary](https://github.com/RounakChoudhary) |
-| *Payal* | *Structure & Data Handling:* Initialized the fundamental *graph structure* and algorithm calling mechanisms, while building the necessary *Input and Output Data Panels* for the GUI. | [@payalt2006](https://github.com/payalt2006) |
-| *Likhita* | *Heuristic & Iteration Control:* Implemented the essential *Augmented Path Search Heuristic* for Max-Flow and integrated the *Iteration History Display and Controls* into the UI. | [@likhita666](https://github.com/likhita666) |
+| Akshaya | System definition and UI shell. | [@Akkiiitj](https://github.com/Akkiiitj) |
+| Rounak | Max-flow implementation, visualization, and demo mode. | [@RounakChoudhary](https://github.com/RounakChoudhary) |
+| Payal | Graph structure input and data panel handling. | [@payalt2006](https://github.com/payalt2006) |
+| Likhita | Augmented path heuristic and iteration history controls. | [@likhita666](https://github.com/likhita666) |
 
 ---
 
 ## 📄 License
 
-This project is licensed under the **[MIT License](https://opensource.org/licenses/MIT)** - see the LICENSE.md file (if one exists) for details.
+This project is licensed under the **MIT License**.
