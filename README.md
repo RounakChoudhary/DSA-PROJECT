@@ -50,7 +50,7 @@ You will need a C++ compiler (like g++ or Clang) and the Raylib library installe
     Assuming you have raylib correctly linked, compile the project using your compiler. A common compilation command for Raylib projects is:
     bash
     # Example using g++ (adjust flags based on your Raylib setup)
-    g++ main.cpp -o NetworkSolver -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
+    g++ DSA-project/main.cpp -o NetworkSolver.exe -lraylib
     
 
 3.  *Run the application:*
